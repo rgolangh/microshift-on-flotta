@@ -1,0 +1,62 @@
+apiVersion: management.project-flotta.io/v1alpha1
+kind: EdgeWorkload
+metadata:
+  name: microshift
+spec:
+  type: pod
+  deviceSelector:
+    matchLabels:
+      device.cpu-architecture: x86_64
+  pod:
+    spec:
+      hostNetwork: true
+      # setting an name is important, because the generated name by py podman fails the node creation process
+      # a name of X_pod is not a valid fqdn name (because of the underscore "_")
+      hostname: microshift
+      containers:
+          # is important to distiguish the pod and the container names. Those would become the container and pod names in podman.
+          # If those are the same then podman will create a pod with a name which is non valid FQDN, something like PODNAME_pod (e.g microshift_pod)
+          # With this configuration the name of the pod would be microshift, and the container would be microshift-microshift-bin
+        - name: microshift-bin
+          image: quay.io/microshift/microshift:latest
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: hpvolumes
+              mountPath: /var/hpvolumes:z,rw,rshared
+            - name: criosock
+              mountPath: /var/run/crio/crio.sock:rw,rshared
+            - name: microshift-data
+              mountPath: /var/lib/microshift:rw,rshared
+            - name: kubelet
+              mountPath: /var/lib/kubelet:z,rw,rshared
+            - name: logs
+              mountPath: /var/log
+            - name: etc
+              mountPath: /etc
+      volumes:
+        - name: hpvolumes 
+          hostPath:
+            path: /var/local/hpvolumes
+            type: DirectoryOrCreate
+        - name: criosock
+          hostPath:
+            path: /var/run/crio/crio.sock
+        - name: microshift-data 
+          hostPath:
+            path: /var/local/microshift
+            type: DirectoryOrCreate
+        - name: kubelet 
+          hostPath:
+            path: /var/lib/kubelet
+            type: DirectoryOrCreate
+        - name: logs
+          hostPath:
+            path: /var/log
+        - name: etc 
+          hostPath:
+            path: /etc
+
+      env:
+        - name: POD_NAME
+

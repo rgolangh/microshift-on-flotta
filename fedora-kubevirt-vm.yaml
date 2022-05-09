@@ -1,0 +1,73 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  labels:
+    kubevirt.io/vm: flotta-device
+  name: flotta-device
+spec:
+  dataVolumeTemplates:
+  - metadata:
+      creationTimestamp: null
+      name: fedora-dv
+    spec:
+      pvc:
+        accessModes:
+        - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
+      source:
+        registry:
+          url: docker://quay.io/kubevirt/fedora-container-disk-images:35
+  running: false
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: flotta-device
+    spec:
+      domain:
+        devices:
+          disks:
+          - disk:
+              bus: virtio
+            name: disk0
+          - disk:
+              bus: virtio
+            name: disk1
+        machine:
+          type: ""
+        resources:
+          requests:
+            cpu: 2 
+            memory: 4G
+      terminationGracePeriodSeconds: 0
+      volumes:
+      - name: disk0
+        dataVolume:
+          name: fedora-dv
+      - name: disk1
+        cloudInitNoCloud:
+          userData: |-
+            #cloud-config
+            packages:
+              - git
+              - make
+              - golang
+              - dbus-devel
+              - btrfs-progs-devel
+              - gpgme-devel
+              - device-mapper-devel
+              - podman
+              - conntrack
+              - firewalld
+            runcmd:
+              - [ dnf, module, enable, -y, cri-o:1.21 ]
+              - [ dnf, install, -y, cri-o, cri-tools ]
+              - [ systemctl, enable, --now, crio ]
+              - [ systemctl, enable, --now, nftables ]
+              - [ systemctl, enable, --now, firewalld ]
+              - [ git, clone, "https://github.com/project-flotta/flotta-device-worker", /root/flotta-device-worker ]
+              - [ git, clone, "https://github.com/RedHatInsights/yggdrasil", /root/yggdrasil ]
+            ssh_authorized_keys:
+              - ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDX95Yb4UAiBLh+6KAchctC7VrUGghC7OLyJJctkA+wxOL3gBSUz1Y95J+PSh1nkuftKGM2Nl4vPULq9UgfpygjetLuiDI4x59IGCmaAKmvTr+moT/DsteIIj2P4JVTxEFFwF55tp4n8Yypd4up20yhj737FmO1AOzjaHHDodGQiXn6cJy5Kd+vn0HSTi6nkR2pyodBWRhV58swAAc3OkjAG2SqCLxuvT1UdXgAY1TJfnE6WBzOGcJ9KyvSFK0M9ROfnsXEvDXDo3zzz0hSWDqH6NqjBVMSULxB143ek80A2ShtcQjV5Xpdu7RBzoA/cFvRBz2pHt3XgwyrJybRNepAS8HzHQ2D/rcsRZ45QnSeHWx4xOhFKWFJ9Ohr9mdX8WkxGVhlavsEZzJndjxGKEMa4HIZ5jm8Y8VJ3PG6kcDfquE7q4h0EopNc2PSRVKX4WhPFT1CmerRerCJAlTegS2VMkCeBiLlfm7if3PWNWKUfH4+4eOGayHoazQdMWwqi4ryV1SwxhrBCFimBTARbufwMIwWf6kDEETpu93+Lpb7/m0JdAKghlSbUqS3YdV0IW73fGRfvj9NpyiUlGkgT4Z1HtHiNWKWhPxeUAtKncPjCI7YUYb1UPLvRh7IrhQVbvdajFzSTFC/e0bstbYIE2KYYjeuPme85wjv+Jqd76O7Ww== rgolan@redhat.com
+
