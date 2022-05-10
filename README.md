@@ -6,6 +6,8 @@ This effort is to prove microshift can be deployed as a flotta workload.
 Flotta workload is essentially a managed, updatable, podman container, controlled
 by an k8s operator and follows the podSpec definition.
 
+See [Project Flotta](https://project-flotta.github.io/) for more details.
+
 # The deployment environment
 The flotta 'device' is an x86 kubevirt VM running standard Fedora 35 cloud image,
 and the flotta-operator deployed on a kind cluster with latest kubevirt upstream installed.
