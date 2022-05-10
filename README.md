@@ -1,5 +1,7 @@
 # Microshift on a Flotta edge device
 
+[](demo.gif)/![](demo.gif)
+
 This effort is to prove microshift can be deployed as a flotta workload.
 Flotta workload is essentially a managed, updatable, podman container, controlled
 by an k8s operator and follows the podSpec definition.
