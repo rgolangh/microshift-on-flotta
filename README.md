@@ -53,7 +53,7 @@ The edge workload declares the microshift workload with the needed volumes and f
         oc get secret -n flotta -l reg-client-ca=true -o jsonpath={.items[1].data.client"\."key} | base64 -d | ssh fedora@$VM_IP sudo tee /etc/pki/consumer/key.pem
         oc get secret -n flotta flotta-ca -o jsonpath={.data.ca"\."crt} | base64 -d | ssh fedora@$VM_IP sudo tee /etc/pki/ca-trust/source/anchors/flotta-ca.pem
         ssh fedora@$VM_IP sudo update-ca-trust
-        "echo $(oc get svc -n flotta  flotta-operator-controller-manager -o jsonpath={.spec.clusterIP}) project-flotta.io | sudo tee -a /etc/hosts"
+        ssh fedora@$VM_IP "echo $(oc get svc -n flotta  flotta-operator-controller-manager -o jsonpath={.spec.clusterIP}) project-flotta.io | sudo tee -a /etc/hosts"
     
      ```
      - log in the device and start the device daemon (yggd)
