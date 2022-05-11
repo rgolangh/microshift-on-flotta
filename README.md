@@ -1,12 +1,3 @@
-<!-- markdownlint-configure-file {
-  "MD013": {
-    "code_blocks": false,
-    "tables": false
-  },
-  "MD033": false,
-  "MD041": false
-} -->
-
 # Microshift on a Flotta edge device
 
 [](demo.gif)/![](demo.gif)
