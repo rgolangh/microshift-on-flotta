@@ -1,3 +1,12 @@
+<!-- markdownlint-configure-file {
+  "MD013": {
+    "code_blocks": false,
+    "tables": false
+  },
+  "MD033": false,
+  "MD041": false
+} -->
+
 # Microshift on a Flotta edge device
 
 [](demo.gif)/![](demo.gif)
@@ -20,35 +29,35 @@ The edge workload declares the microshift workload with the needed volumes and f
 ## Steps to reproduce this POC
 - deploy the flotta operator on any cluster, I used kind
 - record the flotta service endpoint ip
- ```bash
- IP=$(oc get svc -n flotta flotta-operator-controller-manager -o jsonpath='{.spec.clusterIP}')
- ```
+  ```sh
+  IP=$(oc get svc -n flotta flotta-operator-controller-manager -o jsonpath='{.spec.clusterIP}')
+  ```
 - deploy kubevirt https://kubevirt.io/quickstart_kind/
 - create a device VM
-  - replace your ssh key in `fedora-kubevirt-vm.yaml`
+  - replace your ssh key in [fedora-kubevirt-vm.yaml](fedora-kubevirt-vm.yaml)
   - deploy the VM:
-    ```bash
+    ```sh
     oc create -f fedora-kubevirt-vm.yaml
     ```
--  expose the VM ssh
-  ```bash
-  oc expose $(oc get pods -l kubevirt.io/vm=flotta-device -o name) --port 22 --name device-ssh
-  ```
+- expose the VM ssh
+  ```sh
+   oc expose $(oc get pods -l kubevirt.io/vm=flotta-device -o name) --port 22 --name device-ssh
+   ```
 - ssh into the device
-  ```bash
+  ```sh
   ssh fedora@$(oc get svc/device-ssh -o jsonpath='{.spec.clusterIP}')
   ```
   - build yggdrasil and flotta device worker
-   ```bash
-   sudo su -
-   cd /root/flotta-device-worker
-   make install
-   cd /root/yggdrasil
-   make install PREFIX=/var/local
-   ```
+    ```sh
+    sudo su -
+    cd /root/flotta-device-worker
+    make install
+    cd /root/yggdrasil
+    make install PREFIX=/var/local
+    ```
    
    - copy the devices key and cert files from the operator into /etc/pki/consumer/
-     ```bash
+     ```sh
         # on a machine with access to both the cluster and the vm
         export VM_IP=$(oc get svc device-ssh -o jsonpath={.spec.cluserIP})
         oc get secret -n flotta -l reg-client-ca=true -o jsonpath={.items[1].data.client"\."crt} | base64 -d | ssh fedora@$VM_IP sudo tee /etc/pki/consumer/cert.pem
@@ -59,29 +68,29 @@ The edge workload declares the microshift workload with the needed volumes and f
     
      ```
      - log in the device and start the device daemon (yggd)
-       ```bash
-          sudo su -
-          cd /root/yggdrasil
-          ./yggd \
-              --log-level info \
-              --protocol http \
-              --path-prefix api/flotta-management/v1 \
-              --client-id $(cat /etc/machine-id) \
-              --cert-file /etc/pki/consumer/cert.pem \
-              --key-file /etc/pki/consumer/key.pem \
-              --server project-flotta.io:8043
+       ```sh
+       sudo su -
+       cd /root/yggdrasil
+       ./yggd \
+           --log-level info \
+           --protocol http \
+           --path-prefix api/flotta-management/v1 \
+           --client-id $(cat /etc/machine-id) \
+           --cert-file /etc/pki/consumer/cert.pem \
+           --key-file /etc/pki/consumer/key.pem \
+           --server project-flotta.io:8043
        ```
        
        - you should see the device registering to the cluser
-       ```
-       oc get edgedevice
-       oc get edsr
-       ```
+         ```
+         oc get edgedevice
+         oc get edsr
+         ```
        
        - deploy microshift
-       ```
-       oc create -f edgeworkload.yaml
-       ```
+         ```
+         oc create -f edgeworkload.yaml
+         ```
        
 
 ## Things that didn't work or deviates from flotta
