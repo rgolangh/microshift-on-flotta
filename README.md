@@ -19,10 +19,6 @@ The edge workload declares the microshift workload with the needed volumes and f
 
 ## Steps to reproduce this POC
 - deploy the flotta operator on any cluster, I used kind
-- record the flotta service endpoint ip
-  ```sh
-  IP=$(oc get svc -n flotta flotta-operator-controller-manager -o jsonpath='{.spec.clusterIP}')
-  ```
 - deploy kubevirt https://kubevirt.io/quickstart_kind/
 - create a device VM
   - replace your ssh key in [fedora-kubevirt-vm.yaml](fedora-kubevirt-vm.yaml)
@@ -55,7 +51,7 @@ The edge workload declares the microshift workload with the needed volumes and f
         oc get secret -n flotta -l reg-client-ca=true -o jsonpath={.items[1].data.client"\."key} | base64 -d | ssh fedora@$VM_IP sudo tee /etc/pki/consumer/key.pem
         oc get secret -n flotta flotta-ca -o jsonpath={.data.ca"\."crt} | base64 -d | ssh fedora@$VM_IP sudo tee /etc/pki/ca-trust/source/anchors/flotta-ca.pem
         ssh fedora@$VM_IP sudo update-ca-trust
-        ssh fedora@$VM_IP "echo $(oc get svc -n flotta  flotta-operator-controller-manager -o jsonpath={.spec.clusterIP}) project-flotta.io | sudo tee -a /etc/hosts"
+        ssh fedora@$VM_IP "echo $(oc get svc -n flotta flotta-operator-controller-manager -o jsonpath={.spec.clusterIP}) project-flotta.io | sudo tee -a /etc/hosts"
     
      ```
      - log in the device and start the device daemon (yggd)
