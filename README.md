@@ -12,7 +12,7 @@ See [Project Flotta](https://project-flotta.github.io/) for more details.
 The flotta 'device' is an x86 kubevirt VM running standard Fedora 35 cloud image,
 and the flotta-operator deployed on a kind cluster with latest kubevirt upstream installed.
 
-I stored the various yamls I used in a git repo so this all effort can be reproduced.
+I stored the various yamls I used this git repo so this all effort can be reproduced.
 The VM manifest covers the device requirements for both flotta and microshift parts.
 
 The edge workload declares the microshift workload with the needed volumes and flags.
