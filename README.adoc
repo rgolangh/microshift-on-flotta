@@ -1,0 +1,115 @@
+ifdef::env-github[]
+:tip-caption: :bulb:
+:note-caption: :information_source:
+:important-caption: :heavy_exclamation_mark:
+:caution-caption: :fire:
+:warning-caption: :warning:
+endif::[]
+:toc: preamble
+
+= Microshift on a Flotta edge device
+
+image::demo.gif[]
+
+
+This effort is to prove microshift can be deployed as a flotta workload.
+Flotta workload is essentially a managed, updatable, podman container, controlled
+by an k8s operator and follows the podSpec definition.
+
+WARNING: https://project-flotta.github.io/[See Project Flotta] for more details.
+
+
+== The deployment environment
+The flotta 'device' is an x86 kubevirt VM running standard Fedora 35 cloud image,
+and the flotta-operator deployed on a kind cluster with latest kubevirt upstream installed.
+
+I stored the various yamls I used this git repo so this all effort can be reproduced.
+The VM manifest covers the device requirements for both flotta and microshift parts.
+
+The edge workload declares the microshift workload with the needed volumes and flags.
+
+== Steps to reproduce this POC
+
+=== Deploy flotta operator
+You can use any cluster, https://project-flotta.github.io/documentation/latest/gsg/kind.html[I used kind]
+
+=== Deploy kubevirt
+See https://kubevirt.io/quickstart_kind/
+
+=== Create a flotta device
+Replace your ssh key in link:fedora-kubevirt-vm.yaml[]
+
+Deploy the VM:
+[source,bash]
+----
+oc create -f fedora-kubevirt-vm.yaml
+----
+
+Expose the VM to ssh:
+[source,bash]
+----
+oc expose $(oc get pods -l kubevirt.io/vm=flotta-device -o name) --port 22 --name device-ssh
+----
+
+Ssh into the device:
+[source,bash]
+----
+ssh fedora@$(oc get svc/device-ssh -o jsonpath='{.spec.clusterIP}')` 
+----
+
+Build yggdrasil and flotta device worker:
+[source,bash]
+----
+sudo su -
+cd /root/flotta-device-worker
+make install
+cd /root/yggdrasil
+make install PREFIX=/var/local
+----    
+
+Copy the devices key and cert files from the operator into /etc/pki/consumer/
+[source,bash]
+----
+# on a machine with access to both the cluster and the vm
+export VM_IP=$(oc get svc device-ssh -o jsonpath={.spec.cluserIP})
+oc get secret -n flotta -l reg-client-ca=true -o jsonpath={.items[1].data.client"\."crt} | base64 -d | ssh fedora@$VM_IP sudo tee /etc/pki/consumer/cert.pem
+oc get secret -n flotta -l reg-client-ca=true -o jsonpath={.items[1].data.client"\."key} | base64 -d | ssh fedora@$VM_IP sudo tee /etc/pki/consumer/key.pem
+oc get secret -n flotta flotta-ca -o jsonpath={.data.ca"\."crt} | base64 -d | ssh fedora@$VM_IP sudo tee /etc/pki/ca-trust/source/anchors/flotta-ca.pem
+ssh fedora@$VM_IP sudo update-ca-trust
+ssh fedora@$VM_IP "echo $(oc get svc -n flotta flotta-operator-controller-manager -o jsonpath={.spec.clusterIP}) project-flotta.io | sudo tee -a /etc/hosts"
+----
+
+Log in the device and start the device daemon (yggd)
+[source,bash]
+----
+sudo su -
+cd /root/yggdrasil
+./yggd \
+   --log-level info \
+   --protocol http \
+   --path-prefix api/flotta-management/v1 \
+   --client-id $(cat /etc/machine-id) \
+   --cert-file /etc/pki/consumer/cert.pem \
+   --key-file /etc/pki/consumer/key.pem \
+   --server project-flotta.io:8043
+----
+ 
+You should see the device registering to the cluster:
+----
+oc get edgedevice
+oc get edsr
+----
+
+=== Deploy microshift
+----
+oc create -f edgeworkload.yaml
+----
+       
+
+== Things that didn't work or deviates from flotta
+* sharing directories with selinux policies from non /var/local location fails various components.
+** use /var/lib/kubelet and not /var/local/kubelet
+** use /var/logs and not /var/local/logs otherwise crio fails to create a container log
+* used firewalld + nftables. According to the flotta device blueprint it should use nftables directly,
+no firewalld, so need to check the nft tables isn't messed up.
+
